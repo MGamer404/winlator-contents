@@ -1172,5 +1172,23 @@
     "verName": "v2.1-bc3b29b9e-nightly",
     "verCode": "0",
     "remoteUrl": "https://github.com/The412Banner/winlator-contents/releases/download/d7vk-v1/d7vk-v2.1-bc3b29b9e-nightly.wcp"
+  },
+  {
+    "type": "Turnip",
+    "verName": "Rutabaga-26.08.28",
+    "verCode": "0",
+    "remoteUrl": "https://github.com/The412Banner/winlator-contents/releases/download/rutabaga-drivers-v1/Rutabaga-26.08.28.zip"
+  },
+  {
+    "type": "Turnip",
+    "verName": "Rutabaga-26.09.24",
+    "verCode": "0",
+    "remoteUrl": "https://github.com/The412Banner/winlator-contents/releases/download/rutabaga-drivers-v1/Rutabaga-26.09.24.zip"
+  },
+  {
+    "type": "Turnip",
+    "verName": "Rutabaga-26.10.10",
+    "verCode": "0",
+    "remoteUrl": "https://github.com/The412Banner/winlator-contents/releases/download/rutabaga-drivers-v1/Rutabaga-26.10.10.zip"
   }
 ]

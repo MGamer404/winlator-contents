@@ -6,6 +6,22 @@
 
 ---
 
+## Session — 2026-10-12
+
+### [drivers] — Add the three Rutabaga Turnip drivers
+
+#### What changed
+- New release `rutabaga-drivers-v1` on this repo with three AdrenoTools zips. Each zip holds `meta.json` and `libvulkan_freedreno.so`:
+    - `Rutabaga-26.10.10.zip`: Mesa 26.3.0-devel git-b00479181d. Built from GameHub's `mesa-witcher3-hdr` branch: Uncharted A6xx/A7xx compat with SSBO emulation, Assassin's Creed IV work, indexed-draw hang workaround.
+    - `Rutabaga-26.09.24.zip`: Mesa 26.3.0-devel git-511bc6093f. First Rutabaga build (R33): Uncharted and Onimusha profiles, Wave32 option, mesh-shader opt-out.
+    - `Rutabaga-26.08.28.zip`: Mesa 26.3.0-devel git-8c652b6667. Plain upstream Turnip. GameHub's server names the file `turnip-26.2.0-GamesirB2`.
+- Source: GameHub `COMPONENT:rutabaga-*` entries (ids 471/477/479). Each `.tzst` matched its catalog md5, and each driver inside the zip matches its `.tzst` byte for byte.
+- `contents.json`: three new `Turnip` rows at the end, oldest first, so the newest lists on top. Total 193 → 196. No existing row changed. All URLs return **200**.
+- Bannerlator's Official catalog only lists DXVK/D7VK/VKD3D/Box64/WOWBox64/FEXCore/Wine/Proton, so these rows don't show there until the app lists GPU Drivers for that source. Clients that don't know the `Turnip` type skip the rows, because `getTypeByName` returns null.
+- Not device-tested.
+
+---
+
 ## Session — 2026-09-16
 
 ### [proton] — Add GE-Proton 11.0-7 x86_64 and GE-Proton 11.0-7.1 (arm64ec + x86_64), all as (v7)
