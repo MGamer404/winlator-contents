@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "category": "steam-host-builds",
+  "name": "Headless Steam - accepted Valve Android client builds",
+  "note": "Valve androidarm64 Steam client builds (manifest https://client-update.steamstatic.com/steam_client_linuxarm64, package bins_androidarm64_linuxarm64) that Bannerlator's Headless Steam host (bl-steam-host) may drive. Each row was checked with the host's own structural slot analysis (Bannerlator app/src/main/cpp/bl-steam-host/slot_discovery.cpp: RTTI vtables + method-name references + code fingerprints equal to the device-proven build 1788291500). 'slots' is the analysis result the host cross-checks at runtime; 'sha2' is the package checksum it was verified with (a manifest with a different sha2 is not accepted from this row). Rows are added by the steam-host-watch workflow (source=watcher) or by hand (source=manual). 'revoked' withdraws a build from Headless Steam even if the app has it built in. Nothing here is hosted by us: the app always downloads from Valve's CDN.",
+  "builds": [
+    {
+      "version": "1788291500",
+      "sha2": "d8c1a969da2463e5c7245fa5429a8dd9a6ffb4b673249a3f1cfcadbdab9ef7aa",
+      "size": 18018236,
+      "slots": "engine=8,13,17 user=1,4,49,50,54,56,69 apps=7 friends=5",
+      "verified": "2026-10-14",
+      "source": "manual",
+      "device_proven": true
+    },
+    {
+      "version": "1788652215",
+      "sha2": "",
+      "size": 18018134,
+      "slots": "engine=8,13,17 user=1,4,49,50,54,56,69 apps=7 friends=5",
+      "verified": "2026-10-14",
+      "source": "manual",
+      "device_proven": true
+    },
+    {
+      "version": "1791918634",
+      "sha2": "ebb41b3917009cc597cfdd7b76e32f0d6dbd73df7ac07648113e0dc137395e05",
+      "size": 17941237,
+      "slots": "engine=8,13,17 user=1,4,49,50,54,56,69 apps=7 friends=5",
+      "verified": "2026-10-14",
+      "source": "manual",
+      "device_proven": false
+    }
+  ],
+  "revoked": []
+}
