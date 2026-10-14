@@ -1,0 +1,139 @@
+name: Steam host build watcher TEST (temporary)
+
+# Watches Valve's Android Steam client (steam_client_linuxarm64 → bins_androidarm64_linuxarm64).
+# When Valve publishes a build steam-host-builds.json does not list, this downloads it from Valve's
+# CDN, checks size + sha256 against Valve's manifest, and runs Bannerlator's own slot analysis on
+# libsteamclient.so (slot_discovery.cpp from the Bannerlator repo — the exact code bl-steam-host
+# runs before it drives a build). Nothing from Valve is executed.
+#   pass → the build is appended to steam-host-builds.json on main (commit as The412Banner);
+#          the app picks it up on its next catalog fetch, no app update needed.
+#   fail → a GitHub issue with the analysis notes; the build is NOT added.
+# Only steam-host-builds.json is ever written (contents.json and every other catalog stay untouched).
+#
+# The schedule is intentionally OFF until the owner confirms. To enable, uncomment `schedule`.
+
+on:
+  push:
+    branches: [feat/steam-host-builds-catalog]
+    paths: ['.github/workflows/steam-host-watch-test.yml']
+  workflow_dispatch:
+    inputs:
+      bannerlator_ref:
+        description: 'Bannerlator ref that has bl-steam-host/slot_discovery.cpp'
+        required: true
+        default: 'main'
+      dry_run:
+        description: 'Analyse only: do not commit to the catalog or open an issue'
+        type: boolean
+        required: true
+        default: true
+      recheck:
+        description: 'Analyse the current Valve build even if it is already listed (use with dry run)'
+        type: boolean
+        required: false
+        default: false
+  # schedule:
+  #   - cron: '17 */6 * * *'
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: steam-host-watch-test
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout catalog
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          path: contents
+
+      - name: Read Valve's manifest
+        id: m
+        run: |
+          set -euo pipefail
+          python3 -I contents/.github/scripts/steam_host_watch.py manifest contents/steam-host-builds.json --recheck | tee -a "$GITHUB_OUTPUT"
+
+      - name: Checkout the slot analysis (Bannerlator)
+        if: steps.m.outputs.new == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: The412Banner/Bannerlator
+          ref: feat/headless-steam-auto-verify
+          path: bl
+          sparse-checkout: app/src/main/cpp/bl-steam-host
+          sparse-checkout-cone-mode: false
+
+      - name: Build slotcheck
+        if: steps.m.outputs.new == 'true'
+        run: |
+          set -euo pipefail
+          src=bl/app/src/main/cpp/bl-steam-host
+          test -f "$src/slot_discovery.cpp" || { echo "::error::$src/slot_discovery.cpp missing at ref feat/headless-steam-auto-verify"; exit 1; }
+          mkdir -p tools
+          g++ -std=c++17 -O2 -Wall -o tools/slotcheck "$src/slot_discovery.cpp" "$src/slotcheck_main.cpp"
+
+      - name: Download, verify and analyse build ${{ steps.m.outputs.version }}
+        id: v
+        if: steps.m.outputs.new == 'true'
+        run: |
+          set -euo pipefail
+          python3 -I contents/.github/scripts/steam_host_watch.py verify work tools/slotcheck \
+            '${{ steps.m.outputs.file }}' '${{ steps.m.outputs.size }}' '${{ steps.m.outputs.sha2 }}' '${{ steps.m.outputs.version }}' \
+            | tee -a "$GITHUB_OUTPUT"
+          {
+            echo "### Valve build ${{ steps.m.outputs.version }}"
+            echo '```json'
+            python3 -I -c "import json,sys; r=json.load(open('work/result.json')); c=r.get('check') or {}; print(json.dumps({k:r[k] for k in ('version','ok','error','sha2','size')} | {'line':c.get('line',''),'notes':c.get('notes',[])}, indent=2))"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Add to steam-host-builds.json
+        if: false
+        working-directory: contents
+        run: |
+          set -euo pipefail
+          run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          python3 -I .github/scripts/steam_host_watch.py add steam-host-builds.json ../work/result.json "$run_url"
+          git config user.name "The412Banner"
+          git config user.email "the412banner@users.noreply.github.com"
+          git add steam-host-builds.json
+          git diff --cached --quiet && { echo "nothing to commit"; exit 0; }
+          git commit -m "steam-host-builds: accept Valve build ${{ steps.m.outputs.version }} (slot self-check passed)"
+          for i in 1 2 3; do
+            git push origin HEAD:main && exit 0
+            git pull --rebase origin main
+          done
+          exit 1
+
+      - name: Open an issue (analysis failed)
+        if: false
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          title="Headless Steam: Valve build ${{ steps.m.outputs.version }} failed the slot self-check"
+          if gh issue list --state open --search "$title in:title" --json number --jq '.[0].number' | grep -q .; then
+            echo "issue already open"; exit 0
+          fi
+          {
+            echo "Valve published Android Steam client build **${{ steps.m.outputs.version }}** and Bannerlator's slot analysis did **not** confirm it, so it was **not** added to \`steam-host-builds.json\`."
+            echo
+            echo "Fresh Headless Steam installs on this build stay refused (the app runs the same check on the device); existing installs keep their current build."
+            echo
+            echo "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo
+            echo '```json'
+            cat work/result.json
+            echo '```'
+            echo
+            echo "Next: re-verify the slots by hand (slotcheck --dump-shapes), update bl-steam-host if a method moved or changed signature, then add the row manually."
+          } > body.md
+          gh issue create --title "$title" --body-file body.md
